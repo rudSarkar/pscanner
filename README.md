@@ -5,6 +5,8 @@ A fast, concurrent TCP port scanner written in Go that supports scanning single 
 ## Features
 
 - 🚀 Fast concurrent scanning with configurable workers
+- 🎯 Flexible port specification (single, range, or comma-separated)
+- 💾 Save results to output file
 - 🔄 Automatic retry mechanism for reliable results
 - 📊 Real-time progress reporting with ETA
 - 🌐 Support for hostnames and IP addresses
@@ -26,11 +28,17 @@ go install github.com/rudSarkar/pscanner@latest
 # Scan a single host (all 65535 ports)
 pscanner -h example.com
 
-# Scan localhost
-pscanner -h 127.0.0.1
+# Scan specific ports
+pscanner -h example.com -p 80,443,8080
+
+# Scan port range
+pscanner -h example.com -p 1-1024
 
 # Scan with custom concurrency
 pscanner -h example.com -c 200
+
+# Save output to file
+pscanner -h example.com -p 80-443 -o results.txt
 ```
 
 ### Scanning Multiple Hosts
@@ -73,6 +81,8 @@ pscanner -cf cidrs.txt
 | `-h` | Single host to scan | "" |
 | `-hf` | File containing list of hosts (one per line) | "" |
 | `-cf` | File containing list of CIDR ranges (one per line) | "" |
+| `-p` | Ports to scan (e.g., 80, 80-443, 80,443,8080) | All ports (1-65535) |
+| `-o` | Output file to save results | "" |
 | `-c` | Number of concurrent workers | 100 |
 | `-r` | Number of retries for each port | 5 |
 | `-t` | Connection timeout in milliseconds | 500 |
@@ -81,17 +91,26 @@ pscanner -cf cidrs.txt
 ### Examples
 
 ```bash
+# Scan common web ports
+pscanner -h example.com -p 80,443,8080,8443
+
+# Scan well-known ports (1-1024)
+pscanner -h example.com -p 1-1024
+
 # Fast scan with high concurrency
 pscanner -h 192.168.1.1 -c 500
 
 # Slower, more reliable scan
 pscanner -h example.com -c 50 -r 10 -t 1000
 
-# Scan multiple targets with custom settings
-pscanner -hf hosts.txt -c 200 -t 300 -s 50
+# Scan multiple targets with custom settings and save output
+pscanner -hf hosts.txt -p 22,80,443 -c 200 -o scan_results.txt
 
-# Scan CIDR range
-pscanner -cf cidrs.txt -c 150
+# Scan CIDR range on specific ports
+pscanner -cf cidrs.txt -p 22,3389 -c 150
+
+# Combine port ranges and individual ports
+pscanner -h example.com -p 20-25,80,443-445,3389
 ```
 
 ## Output
@@ -107,9 +126,9 @@ The scanner provides:
 
 - **Open port notifications** as they are discovered:
   ```
-  192.168.1.1:22 OPEN
-  192.168.1.1:80 OPEN
-  192.168.1.1:443 OPEN
+  192.168.1.1:22
+  192.168.1.1:80
+  192.168.1.1:443
   ```
 
 - **Final summary** with total statistics
@@ -117,19 +136,20 @@ The scanner provides:
 ### Sample Output
 
 ```
-Scanning 1 host(s) across all 65535 ports (65535 total combinations)...
-192.168.1.1:22 OPEN
-192.168.1.1:80 OPEN
-[Progress] 15.23% | Scanned: 9984/65535 | Open: 2 | Rate: 1997/s | ETA: 27s
-192.168.1.1:443 OPEN
-[Progress] 30.46% | Scanned: 19968/65535 | Open: 3 | Rate: 1998/s | ETA: 22s
+Scanning 1 host(s) across 100 ports (100 total combinations)...
+Output will be saved to: results.txt
+192.168.1.1:22
+192.168.1.1:80
+[Progress] 45.00% | Scanned: 45/100 | Open: 2 | Rate: 15/s | ETA: 3s
+192.168.1.1:443
+[Progress] 90.00% | Scanned: 90/100 | Open: 3 | Rate: 18/s | ETA: 0s
 ...
 
 === Scan Complete ===
-Total scanned: 65535
+Total scanned: 100
 Open ports found: 3
-Time elapsed: 33s
-Average rate: 1986 ports/second
+Time elapsed: 6s
+Average rate: 16 ports/second
 ```
 
 ## Performance Tips
@@ -141,8 +161,10 @@ Average rate: 1986 ports/second
 
 ## Notes
 
-- The scanner attempts all 65535 TCP ports for each host
+- By default, the scanner attempts all 65535 TCP ports for each host unless `-p` flag is specified
+- Use the `-p` flag to target specific ports for faster, focused scans
 - Network and broadcast addresses are excluded when expanding CIDR ranges
+- Results are displayed in real-time and optionally saved to a file with `-o`
 - The tool requires appropriate network permissions to scan hosts
 
 ## License
